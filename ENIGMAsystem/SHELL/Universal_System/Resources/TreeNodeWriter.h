@@ -1,9 +1,9 @@
 namespace UniversalSystem {
-    // Define the structure of a tree node
+    // Definition of the structure of a tree node
     struct TreeNode {
         int id;
         std::string name;
-        // Add other attributes as needed
+        // That is just an example and it needs a lot of work
     };
 
     // Function to retrieve a tree node by ID
@@ -18,6 +18,6 @@ namespace UniversalSystem {
     // Function to remove a tree node by ID
     void removeTreeNodeByID(int id);
 
-    // Add other API functions as needed
+    // Other API functions as needed
 }
 
