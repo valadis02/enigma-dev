@@ -25,65 +25,64 @@
 **                                                                              **
 \********************************************************************************/
 
-#include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <cstdint>
 
 using namespace std;
 
-#include "syntax/syncheck.h"
-#include "parser/parser.h"
-
-#include "parser/object_storage.h"
-#include "compiler/compile_common.h"
-
-#include "backend/ideprint.h"
-#include "languages/lang_CPP.h"
-
-inline void writei(int x, FILE *f) {
-  fwrite(&x,4,1,f);
-}
-
-int lang_CPP::module_write_backgrounds(const GameData &game, FILE *gameModule)
+int lang_CPP::module_write_backgrounds(const GameData &game, ofstream &gameModule)
 {
-  // Now we're going to add backgrounds
-  edbg << game.backgrounds.size() << " Adding Backgrounds to Game Module: " << flushl;
+    // Write the magic number
+    gameModule << "BKG ";
+    
+    // Write the number of backgrounds
+    int back_count = game.backgrounds.size();
+    gameModule.write(reinterpret_cast<const char*>(&back_count), sizeof(back_count));
 
-  //Magic Number
-  fwrite("BKG ",4,1,gameModule);
+    // Write the maximum background ID
+    int back_maxid = 0;
+    for (const auto& background : game.backgrounds) {
+        if (background.id() > back_maxid) {
+            back_maxid = background.id();
+        }
+    }
+    gameModule.write(reinterpret_cast<const char*>(&back_maxid), sizeof(back_maxid));
 
-  //Indicate how many
-  int back_count = game.backgrounds.size();
-  fwrite(&back_count,4,1,gameModule);
+    // Write background data dynamically
+    for (const auto& background : game.backgrounds) {
+        // Write background ID
+        gameModule.write(reinterpret_cast<const char*>(&background.id()), sizeof(background.id()));
 
-  int back_maxid = 0;
-  for (int i = 0; i < back_count; i++)
-    if (game.backgrounds[i].id() > back_maxid)
-      back_maxid = game.backgrounds[i].id();
-  fwrite(&back_maxid,4,1,gameModule);
+        // Write image dimensions
+        gameModule.write(reinterpret_cast<const char*>(&background.image_data.width), sizeof(background.image_data.width));
+        gameModule.write(reinterpret_cast<const char*>(&background.image_data.height), sizeof(background.image_data.height));
 
-  for (int i = 0; i < back_count; i++)
-  {
-    writei(game.backgrounds[i].id(), gameModule);  // id
-    writei(game.backgrounds[i].image_data.width,  gameModule);  // width
-    writei(game.backgrounds[i].image_data.height, gameModule);  // height
+        // Write other attributes dynamically
+        vector<int> attributes = {
+            background.legacy_transparency,
+            background->smooth_edges(),
+            background->preload(),
+            background->use_as_tileset(),
+            background->tile_width(),
+            background->tile_height(),
+            background->horizontal_offset(),
+            background->vertical_offset(),
+            background->horizontal_spacing(),
+            background->vertical_spacing()
+        };
+        for (const auto& attr : attributes) {
+            gameModule.write(reinterpret_cast<const char*>(&attr), sizeof(attr));
+        }
 
-    writei(game.backgrounds[i].legacy_transparency,   gameModule);
-    writei(game.backgrounds[i]->smooth_edges(),       gameModule);
-    writei(game.backgrounds[i]->preload(),            gameModule);
-    writei(game.backgrounds[i]->use_as_tileset(),     gameModule);
-    writei(game.backgrounds[i]->tile_width(),         gameModule);
-    writei(game.backgrounds[i]->tile_height(),        gameModule);
-    writei(game.backgrounds[i]->horizontal_offset(),  gameModule);
-    writei(game.backgrounds[i]->vertical_offset(),    gameModule);
-    writei(game.backgrounds[i]->horizontal_spacing(), gameModule);
-    writei(game.backgrounds[i]->vertical_spacing(),   gameModule);
+        // Write pixel data size
+        int pixel_size = background.image_data.pixels.size();
+        gameModule.write(reinterpret_cast<const char*>(&pixel_size), sizeof(pixel_size));
 
-    const int sz = game.backgrounds[i].image_data.pixels.size();
-    writei(sz, gameModule); // size
-    fwrite(game.backgrounds[i].image_data.pixels.data(), 1, sz, gameModule); // data
-  }
+        // Write pixel data
+        gameModule.write(reinterpret_cast<const char*>(background.image_data.pixels.data()), pixel_size);
+    }
 
-  edbg << "Done writing backgrounds." << flushl;
-  return 0;
+    return 0;
 }
