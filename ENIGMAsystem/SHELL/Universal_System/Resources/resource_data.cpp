@@ -25,12 +25,14 @@
 **                                                                              **
 \********************************************************************************/
 
-#include <map>
-#include "Universal_System/var4.h"
-#include "resource_data.h"
-using namespace std;
+#include "AssetArray.h"  
+#include "resource_data.h" 
+#include "Universal_System/var4.h" 
+#include "resource_data.h" 
 
-static map<string,int> resources;
+using namespace std; 
+
+static enigma::AssetArray<int> resources;
 namespace enigma
 {
   extern size_t script_idmax;
@@ -38,7 +40,7 @@ namespace enigma
   {
     for (nameid_pair* i = n; i->id != -1; i++)
     {
-      //TODO: IMPLEMENT
+      resources.add(i->id);
     }
   }
 }
